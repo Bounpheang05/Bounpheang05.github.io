@@ -1,0 +1,69 @@
+---
+// Shared links land here. Clicks on the wall open the modal instead.
+import { Image, getImage } from 'astro:assets';
+import { getCollection } from 'astro:content';
+import Base from '../../../layouts/Base.astro';
+import { langParam, languages, localePath, ui } from '../../../data/i18n';
+import titles from '../../../data/titles.json';
+
+export async function getStaticPaths() {
+  const works = (await getCollection('works')).sort((a, b) => a.data.order - b.data.order);
+  return languages.flatMap((l) =>
+    works.map((work, i) => ({
+      params: { lang: langParam(l.code), id: work.id },
+      props: { lang: l.code, work, prev: works[i - 1], next: works[i + 1] },
+    })),
+  );
+}
+
+const { lang, work, prev, next } = Astro.props;
+const t = ui[lang];
+const { title: english, category, image } = work.data;
+const title = lang === 'en' ? english : titles[english as keyof typeof titles][lang];
+const share = await getImage({ src: image, width: 1200, format: 'jpg', quality: 80 });
+---
+<Base lang={lang} title={title} image={share.src}>
+  <article class="page grid gap-8 pt-8 lg:grid-cols-[1fr_20rem]">
+    <a
+      id="zoom"
+      href={image.src}
+      data-pswp-width={image.width}
+      data-pswp-height={image.height}
+      class="block cursor-zoom-in bg-surface p-3 sm:p-6"
+      aria-label={`${t.openFull}: ${title}`}
+    >
+      <Image
+        src={image}
+        alt={title}
+        widths={[640, 1200, 1800]}
+        sizes="100vw"
+        format="webp"
+        quality={85}
+        loading="eager"
+        class="mx-auto max-h-[82vh] w-auto"
+      />
+    </a>
+    <div>
+      <h1 class="display text-3xl">{title}</h1>
+      <p class="mt-2 text-stone">{t.categories[category as keyof typeof t.categories]}</p>
+      <a href={`${localePath(lang)}#contact`} class="btn btn-primary mt-6">{t.contactMe}</a>
+      <nav class="mt-6 border-t border-line pt-3" aria-label={t.work}>
+        {prev && <a href={localePath(lang, `/work/${prev.id}/`)} class="flex min-h-11 items-center underline">{t.previous}</a>}
+        {next && <a href={localePath(lang, `/work/${next.id}/`)} class="flex min-h-11 items-center underline">{t.next}</a>}
+        <a href={`${localePath(lang)}#work`} class="flex min-h-11 items-center underline">{t.allWork}</a>
+      </nav>
+    </div>
+  </article>
+</Base>
+
+<script>
+  import PhotoSwipeLightbox from 'photoswipe/lightbox';
+  import 'photoswipe/style.css';
+
+  const lightbox = new PhotoSwipeLightbox({
+    gallery: '#zoom',
+    pswpModule: () => import('photoswipe'),
+    bgOpacity: 1,
+  });
+  lightbox.init();
+</script>

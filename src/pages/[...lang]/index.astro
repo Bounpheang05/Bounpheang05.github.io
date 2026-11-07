@@ -1,0 +1,229 @@
+---
+import { Image } from 'astro:assets';
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { categories, site, tools } from '../../data/site';
+import portrait from '../../assets/portrait.png';
+import { toolIcons } from '../../data/tool-icons';
+import { langParam, languages, localePath, ui, type Lang } from '../../data/i18n';
+import titles from '../../data/titles.json';
+
+export function getStaticPaths() {
+  return languages.map((l) => ({ params: { lang: langParam(l.code) }, props: { lang: l.code } }));
+}
+
+const { lang } = Astro.props as { lang: Lang };
+const t = ui[lang];
+const titleOf = (english: string) =>
+  lang === 'en' ? english : titles[english as keyof typeof titles][lang];
+const works = (await getCollection('works')).sort((a, b) => a.data.order - b.data.order);
+const labels = { close: t.close, zoom: t.zoom, previous: t.previous, next: t.next, error: t.imageError };
+const toolGroups = [
+  { heading: t.toolsDesign, items: tools.design },
+  { heading: t.toolsAi, items: tools.ai },
+];
+const pieceProps = (w: (typeof works)[number]) => ({
+  class: 'piece',
+  href: localePath(lang, `/work/${w.id}/`),
+  'data-category': w.data.category,
+  'data-title': titleOf(w.data.title),
+  'data-pswp-src': w.data.image.src,
+  'data-pswp-width': w.data.image.width,
+  'data-pswp-height': w.data.image.height,
+  style: `--ar:${(w.data.image.width / w.data.image.height).toFixed(4)}`,
+});
+---
+<Base lang={lang}>
+  <section class="page hero">
+    <div>
+      <h1 class="display max-w-2xl text-4xl sm:text-6xl">
+        {t.headline.split(' ').map((word) => <><span class="whitespace-nowrap">{word}</span>{' '}</>)}
+      </h1>
+      <p class="mt-6 max-w-2xl text-xl text-stone sm:text-2xl">{t.sub}</p>
+      <p class="mt-4 max-w-2xl text-xl sm:text-2xl">{t.intro}</p>
+      <div class="mt-8 flex flex-wrap items-center gap-x-7 gap-y-2">
+        <a href="#work" class="btn btn-primary">{t.seeWork}</a>
+        <a href="#contact" class="text-link">{t.contactMe}</a>
+      </div>
+    </div>
+    <Image src={portrait} alt={site.facebookName} format="webp" quality={92} loading="eager" class="portrait" />
+  </section>
+
+  <section id="work" aria-labelledby="work-heading" class="page pt-12 sm:pt-16">
+    <h2 id="work-heading" class="display text-3xl sm:text-4xl">{t.work}</h2>
+    <div class="mt-4 mb-6 flex flex-wrap gap-x-6 border-b border-line" role="group" aria-label={t.filterLabel}>
+      <button class="filter" data-filter="all" aria-pressed="true">{t.allWork}</button>
+      {categories.map((c) => <button class="filter" data-filter={c} aria-pressed="false">{t.categories[c]}</button>)}
+    </div>
+    <div class="wall gallery" data-labels={JSON.stringify(labels)}>
+      {works.map((w) => (
+        <a {...pieceProps(w)}>
+          <Image
+            src={w.data.image}
+            alt={titleOf(w.data.title)}
+            widths={[480, 960, 1440]}
+            sizes="(max-width: 720px) 100vw, 50vw"
+            format="webp"
+            quality={80}
+            loading="lazy"
+          />
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <section aria-labelledby="services-heading" class="page grid gap-8 pt-24 sm:pt-32 lg:grid-cols-[1fr_2fr]">
+    <h2 id="services-heading" class="display text-3xl sm:text-4xl">{t.servicesHeading}</h2>
+    <ul class="border-t border-line">
+      {t.services.map((s) => (
+        <li class="border-b border-line">
+          <a
+            href={s.category ? '#work' : '#contact'}
+            data-jump={s.category || undefined}
+            class="service grid gap-x-8 gap-y-1 py-5 sm:grid-cols-2"
+          >
+            <h3 class="text-xl">{s.title}</h3>
+            <p class="text-stone">{s.body}</p>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </section>
+
+  <section aria-labelledby="tools-heading" class="page grid gap-8 pt-24 sm:pt-32 lg:grid-cols-[1fr_2fr]">
+    <h2 id="tools-heading" class="display text-3xl sm:text-4xl">{t.toolsHeading}</h2>
+    <div>
+      <div class="grid gap-10 sm:grid-cols-2">
+        {toolGroups.map((group) => (
+          <div>
+            <h3 class="text-stone">{group.heading}</h3>
+            <ul class="mt-3 border-t border-line">
+              {group.items.map((tool) => {
+                const icon = toolIcons[tool.icon];
+                return (
+                  <li class="flex items-center gap-4 border-b border-line py-3">
+                    <svg
+                      viewBox={icon.viewBox}
+                      width="28"
+                      height="28"
+                      fill="currentColor"
+                      class="flex-none"
+                      style={icon.color ? `color:${icon.color}` : undefined}
+                      aria-hidden="true"
+                      set:html={icon.body}
+                    />
+                    <span lang="en">{tool.name}</span>
+                    {'basic' in tool && <span class="ml-auto text-stone" lang={lang}>{t.basic}</span>}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="process-heading" class="page grid gap-8 py-24 sm:py-32 lg:grid-cols-[1fr_2fr]">
+    <h2 id="process-heading" class="display text-3xl sm:text-4xl">{t.processHeading}</h2>
+    <ol class="border-t border-line">
+      {t.steps.map((step, i) => (
+        <li class="grid grid-cols-[2.5rem_1fr] border-b border-line py-5">
+          <p class="text-stone">{i + 1}</p>
+          <div>
+            <h3 class="text-xl">{step.title}</h3>
+            <p class="mt-1 text-stone">{step.body}</p>
+          </div>
+        </li>
+      ))}
+    </ol>
+  </section>
+</Base>
+
+<style>
+  .service:hover h3 { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 5px; }
+  .filter { display: flex; align-items: center; min-height: 2.75rem; margin-bottom: -1px; cursor: pointer; color: var(--stone); border-bottom: 1px solid transparent; }
+  .filter:hover { color: var(--ink); }
+  .filter[aria-pressed='true'] { color: var(--ink); border-bottom-color: var(--ink); }
+</style>
+
+<script>
+  import PhotoSwipeLightbox from 'photoswipe/lightbox';
+  import 'photoswipe/style.css';
+
+  const wall = document.querySelector<HTMLElement>('.wall')!;
+  const buttons = document.querySelectorAll<HTMLButtonElement>('.filter');
+  const pieces = wall.querySelectorAll<HTMLElement>('.piece');
+
+  function show(view: string) {
+    buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.filter === view)));
+    pieces.forEach((p) => { p.hidden = view !== 'all' && p.dataset.category !== view; });
+  }
+
+  buttons.forEach((b) => b.addEventListener('click', () => show(b.dataset.filter!)));
+  document
+    .querySelectorAll<HTMLElement>('[data-jump]')
+    .forEach((link) => link.addEventListener('click', () => show(link.dataset.jump!)));
+
+  // While the modal fades out, a click must not follow the poster's link to its own page.
+  document.querySelectorAll('.gallery').forEach((gallery) =>
+    gallery.addEventListener('click', (e) => {
+      if ('pswp' in window && window.pswp) e.preventDefault();
+    }),
+  );
+
+  const labels = JSON.parse(wall.dataset.labels!);
+  const lightbox = new PhotoSwipeLightbox({
+    gallery: '.gallery',
+    children: 'a.piece:not([hidden])',
+    pswpModule: () => import('photoswipe'),
+    bgOpacity: 1,
+    showHideAnimationType: 'fade',
+    paddingFn: () => ({ top: 56, bottom: 60, left: 12, right: 12 }),
+    closeTitle: labels.close,
+    zoomTitle: labels.zoom,
+    arrowPrevTitle: labels.previous,
+    arrowNextTitle: labels.next,
+    errorMsg: labels.error,
+  });
+
+  // The address follows the open poster, so Back closes the modal and links can be copied.
+  let historyEntry = false;
+  let closedByBack = false;
+
+  lightbox.on('uiRegister', () => {
+    lightbox.pswp!.ui!.registerElement({
+      name: 'modal-caption',
+      className: 'pswp__modal-caption',
+      appendTo: 'root',
+      onInit: (el, pswp) => {
+        pswp.on('change', () => {
+          const piece = pswp.currSlide?.data.element as HTMLAnchorElement | undefined;
+          if (!piece) return;
+          el.textContent = piece.dataset.title ?? '';
+          if (historyEntry) {
+            history.replaceState({ modal: true }, '', piece.href);
+          } else {
+            history.pushState({ modal: true }, '', piece.href);
+            historyEntry = true;
+          }
+        });
+      },
+    });
+  });
+
+  lightbox.on('close', () => {
+    if (historyEntry && !closedByBack) history.back();
+    historyEntry = false;
+    closedByBack = false;
+  });
+
+  addEventListener('popstate', () => {
+    if (lightbox.pswp && historyEntry) {
+      closedByBack = true;
+      lightbox.pswp.close();
+    }
+  });
+
+  lightbox.init();
+</script>
