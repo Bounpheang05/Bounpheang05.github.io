@@ -12,6 +12,7 @@
   --stone: #6b6b6b;
   --line: #e6e6e6;
   --tile: #f2f2f2;
+  --shine: rgb(255 255 255 / 0.75);
   --logo-filter: none;
 }
 :root[data-theme='dark'] {
@@ -22,6 +23,7 @@
   --stone: #a3a3a3;
   --line: #333333;
   --tile: #262626;
+  --shine: rgb(255 255 255 / 0.07);
   --logo-filter: invert(1);
 }
 @media (prefers-color-scheme: dark) {
@@ -33,6 +35,8 @@
     --stone: #a3a3a3;
     --line: #333333;
     --tile: #262626;
+    --shine: rgb(255 255 255 / 0.07);
+  --shine: rgb(255 255 255 / 0.07);
     --logo-filter: invert(1);
   }
 }
@@ -71,9 +75,21 @@ body { background: var(--paper); color: var(--ink); font-family: var(--font-sans
 .piece[hidden] { display: none; }
 .piece img { display: block; width: 100%; height: auto; }
 
+/* Skeleton: a grey shape at the image's real size, shimmering until the image arrives. */
+.skeleton { position: relative; overflow: hidden; }
+.js .skeleton img { opacity: 0; transition: opacity 0.25s ease-out; }
+.js .skeleton.is-loaded img { opacity: 1; }
+.js .skeleton:not(.is-loaded)::after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, var(--shine) 50%, transparent 70%); transform: translateX(-100%); animation: shimmer 1.4s linear infinite; }
+@keyframes shimmer { to { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) {
+  .js .skeleton:not(.is-loaded)::after { animation: none; opacity: 0; }
+  .js .skeleton img { transition: none; }
+}
+
 /* Hero: words on the left, the designer on the right, nothing else. */
 .hero { display: grid; gap: 3rem; align-items: center; padding-block: 3rem 4rem; }
-.portrait { display: block; width: min(100%, 22rem); height: auto; }
+.portrait { width: min(100%, 22rem); background: var(--tile); }
+.portrait img { display: block; width: 100%; height: auto; }
 @media (min-width: 1024px) {
   .hero { grid-template-columns: 1fr auto; gap: 5rem; min-height: calc(100vh - 3.75rem); padding-block: 2rem 3rem; }
 }

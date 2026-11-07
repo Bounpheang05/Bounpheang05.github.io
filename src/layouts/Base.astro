@@ -17,6 +17,7 @@ const home = localePath(lang);
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script is:inline>
+      document.documentElement.classList.add('js');
       try {
         const theme = localStorage.getItem('theme');
         if (theme) document.documentElement.dataset.theme = theme;
@@ -125,6 +126,15 @@ const home = localePath(lang);
     </style>
 
     <script>
+      document.querySelectorAll<HTMLImageElement>('.skeleton img').forEach((img) => {
+        const reveal = () => img.closest('.skeleton')?.classList.add('is-loaded');
+        if (img.complete && img.naturalWidth > 0) reveal();
+        else {
+          img.addEventListener('load', reveal, { once: true });
+          img.addEventListener('error', reveal, { once: true });
+        }
+      });
+
       document.querySelector('#theme')?.addEventListener('click', () => {
         const root = document.documentElement;
         const current = root.dataset.theme ?? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');

@@ -29,17 +29,18 @@ const share = await getImage({ src: image, width: 1200, format: 'jpg', quality: 
       href={image.src}
       data-pswp-width={image.width}
       data-pswp-height={image.height}
-      class="block cursor-zoom-in bg-surface p-3 sm:p-6"
+      class="skeleton block cursor-zoom-in bg-surface p-3 sm:p-6"
       aria-label={`${t.openFull}: ${title}`}
     >
       <Image
         src={image}
         alt={title}
-        widths={[640, 1200, 1800]}
-        sizes="100vw"
+        widths={[640, 960, 1280, 1800]}
+        sizes="(max-width: 1023px) 100vw, 800px"
         format="webp"
-        quality={85}
+        quality={78}
         loading="eager"
+        fetchpriority="high"
         class="mx-auto max-h-[82vh] w-auto"
       />
     </a>

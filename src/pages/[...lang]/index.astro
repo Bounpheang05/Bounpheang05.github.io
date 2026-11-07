@@ -1,5 +1,5 @@
 ---
-import { Image } from 'astro:assets';
+import { Image, getImage } from 'astro:assets';
 import { getCollection } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import { categories, site, tools } from '../../data/site';
@@ -22,12 +22,31 @@ const toolGroups = [
   { heading: t.toolsDesign, items: tools.design },
   { heading: t.toolsAi, items: tools.ai },
 ];
+// The modal opens a light image first and only fetches the large one when zoomed in.
+const modalImages = new Map(
+  await Promise.all(
+    works.map(async (w) => {
+      const { image } = w.data;
+      const smallWidth = Math.min(1200, image.width);
+      const [small, large] = await Promise.all([
+        getImage({ src: image, width: smallWidth, format: 'webp', quality: 78 }),
+        getImage({ src: image, width: image.width, format: 'webp', quality: 80 }),
+      ]);
+      return [w.id, { src: small.src, srcset: `${small.src} ${smallWidth}w, ${large.src} ${image.width}w` }] as const;
+    }),
+  ),
+);
+const tileSizes = (w: (typeof works)[number]) => {
+  const tile = Math.min(1200, Math.round((w.data.image.width / w.data.image.height) * 340));
+  return `(max-width: 720px) calc(100vw - 2.5rem), ${tile}px`;
+};
 const pieceProps = (w: (typeof works)[number]) => ({
-  class: 'piece',
+  class: 'piece skeleton',
   href: localePath(lang, `/work/${w.id}/`),
   'data-category': w.data.category,
   'data-title': titleOf(w.data.title),
-  'data-pswp-src': w.data.image.src,
+  'data-pswp-src': modalImages.get(w.id)!.src,
+  'data-pswp-srcset': modalImages.get(w.id)!.srcset,
   'data-pswp-width': w.data.image.width,
   'data-pswp-height': w.data.image.height,
   style: `--ar:${(w.data.image.width / w.data.image.height).toFixed(4)}`,
@@ -46,7 +65,9 @@ const pieceProps = (w: (typeof works)[number]) => ({
         <a href="#contact" class="text-link">{t.contactMe}</a>
       </div>
     </div>
-    <Image src={portrait} alt={site.facebookName} format="webp" quality={92} loading="eager" class="portrait" />
+    <div class="portrait skeleton">
+      <Image src={portrait} alt={site.facebookName} format="webp" quality={92} loading="eager" fetchpriority="high" />
+    </div>
   </section>
 
   <section id="work" aria-labelledby="work-heading" class="page pt-12 sm:pt-16">
@@ -61,11 +82,12 @@ const pieceProps = (w: (typeof works)[number]) => ({
           <Image
             src={w.data.image}
             alt={titleOf(w.data.title)}
-            widths={[480, 960, 1440]}
-            sizes="(max-width: 720px) 100vw, 50vw"
+            widths={[320, 480, 640, 960]}
+            sizes={tileSizes(w)}
             format="webp"
-            quality={80}
+            quality={72}
             loading="lazy"
+            decoding="async"
           />
         </a>
       ))}
